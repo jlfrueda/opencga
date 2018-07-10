@@ -24,17 +24,25 @@ import org.opencb.commons.datastore.core.QueryResult;
 import org.opencb.opencga.catalog.db.api.DiseasePanelDBAdaptor;
 import org.opencb.opencga.catalog.exceptions.CatalogException;
 import org.opencb.opencga.catalog.managers.ClinicalAnalysisManager;
+import org.opencb.opencga.core.common.TimeUtils;
 import org.opencb.opencga.core.models.ClinicalAnalysis;
 import org.opencb.opencga.core.models.DiseasePanel;
 import org.opencb.opencga.core.models.Individual;
+import org.opencb.opencga.core.models.User;
+import org.opencb.opencga.core.models.clinical.Analyst;
 import org.opencb.opencga.core.models.clinical.Interpretation;
+import org.opencb.opencga.core.models.clinical.ReportedVariant;
 import org.opencb.opencga.core.results.VariantQueryResult;
 import org.opencb.opencga.storage.core.StorageEngineFactory;
+import org.opencb.opencga.storage.core.exceptions.StorageEngineException;
 import org.opencb.opencga.storage.core.manager.variant.VariantStorageManager;
 import org.opencb.opencga.storage.core.variant.adaptors.VariantQueryParam;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
 
@@ -45,7 +53,6 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
 
     private String clinicalAnalysisId;
 
-    private String disease;
     private String family;
     private List<String> subjects;
     private String type;
@@ -69,7 +76,6 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
             String studyStr,
             // specific parameters
             String clinicalAnalysisId,
-            String disease,
             String family,
             List<String> subjects,
             String type,
@@ -83,7 +89,6 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
         this.sessionId = sessionId;
         this.studyStr = studyStr;
         this.clinicalAnalysisId = clinicalAnalysisId;
-        this.disease = disease;
         this.family = family;
         // should deeply clone this one...
         this.subjects = subjects;
@@ -115,13 +120,52 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
         }
         return null;
     }
+    
+    private List<ReportedVariant> getDiagnosticVariants(VariantStorageManager variantManager, DiseasePanel diseasePanel, List<String> samples) throws CatalogException, StorageEngineException, IOException {
+    	List<DiseasePanel.VariantPanel> variants = diseasePanel.getVariants();
+        Query variantQuery = new Query();
+        variantQuery.put(VariantQueryParam.ID.key(), StringUtils.join(variants, ","));
+        variantQuery.put(VariantQueryParam.SAMPLE.key(), StringUtils.join(samples, ","));
+        VariantQueryResult<Variant> variantQueryResult = variantManager.get(variantQuery, QueryOptions.empty(), sessionId);
+        List<ReportedVariant> reportedVariants = variantQueryResult.getResult().stream().map(variant -> {
+        	ReportedVariant reportedVariant = new ReportedVariant(variant.getImpl());
+        	return reportedVariant;
+        }).collect(Collectors.toList());
+        return reportedVariants;
+    }
+    
+    private List<ReportedVariant> getVUS(VariantStorageManager variantManager, DiseasePanel diseasePanel, List<String> samples) throws CatalogException, StorageEngineException, IOException {
+    	List<String> geneIds = getGeneIdsFromPanel(diseasePanel);
+    	
+    	Query variantQuery = new Query();
+        query.put(VariantQueryParam.GENE.key(), StringUtils.join(geneIds, ","));
+        variantQuery.put(VariantQueryParam.SAMPLE.key(), StringUtils.join(samples, ","));
+        variantQuery.put(VariantQueryParam.ANNOT_BIOTYPE.key(), "protein_coding");
+        // ...
+        QueryOptions queryOptions = new QueryOptions();
+        queryOptions.put(QueryOptions.LIMIT, 1000);
+        VariantQueryResult<Variant> variantQueryResult = variantManager.get(variantQuery, queryOptions, sessionId);
+        List<ReportedVariant> reportedVariants = variantQueryResult.getResult().stream().map(variant -> {
+        	ReportedVariant reportedVariant = new ReportedVariant(variant.getImpl());
+        	return reportedVariant;
+        }).collect(Collectors.toList());
+        return reportedVariants;
+    }
+    
+    private List<ReportedVariant> getUnexpectedFindings() {
+    	return new ArrayList<ReportedVariant>();
+    }
+    
+    private DiseasePanel getDiseasePanel() throws CatalogException {
+    	Query panelQuery = new Query();
+        panelQuery.put(DiseasePanelDBAdaptor.QueryParams.ID.key(), panelId);
+        panelQuery.put(DiseasePanelDBAdaptor.QueryParams.VERSION.key(), panelVersion);
+        QueryResult<DiseasePanel> panelResult = catalogManager.getDiseasePanelManager().get(studyStr, panelQuery, QueryOptions.empty(), sessionId);
+        return panelResult.first();    	
+    }
 
     public void execute() throws Exception {
-        final String userId = catalogManager.getUserManager().getUserId(sessionId);
-
         List<String> samples = new ArrayList<>();
-        List<DiseasePanel.VariantPanel> variants;
-
         if (StringUtils.isNotEmpty(clinicalAnalysisId)) {
             ClinicalAnalysis clinicalAnalysis = getClinicalAnalysis();
 
@@ -137,43 +181,45 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
         }
 
         // fetch disease panel
-        Query panelQuery = new Query();
-        panelQuery.put(DiseasePanelDBAdaptor.QueryParams.ID.key(), panelId);
-        panelQuery.put(DiseasePanelDBAdaptor.QueryParams.VERSION.key(), panelVersion);
-        QueryResult<DiseasePanel> panelResult = catalogManager.getDiseasePanelManager().get(studyStr, panelQuery, QueryOptions.empty(), sessionId);
-        DiseasePanel diseasePanel = panelResult.first();
+        DiseasePanel diseasePanel = getDiseasePanel();
 
         // we create the variant strage manager
         StorageEngineFactory storageEngineFactory = StorageEngineFactory.get(storageConfiguration);
         VariantStorageManager variantManager = new VariantStorageManager(catalogManager, storageEngineFactory);
 
         // Step 1 - we first try to fetch diagnostic variants
-        variants = diseasePanel.getVariants();
-        Query variantQuery = new Query();
-        variantQuery.put(VariantQueryParam.ID.key(), StringUtils.join(variants, ","));
-        variantQuery.put(VariantQueryParam.SAMPLE.key(), StringUtils.join(samples, ","));
+        List<ReportedVariant> diagnosticVariants = getDiagnosticVariants(variantManager, diseasePanel, samples);
+        
+        // Step 2 - if no results, try to fetch VUS variants
+        List<ReportedVariant> reportedVariants = diagnosticVariants.isEmpty()
+        		? getVUS(variantManager, diseasePanel, samples)
+        		: diagnosticVariants;
+        
+        // Step 3 - in any case, add potential unexpected findings
+        List<ReportedVariant> unexpectedFindings = getUnexpectedFindings();
 
-        // Step 2 - we first try to fetch VUS variants
-        VariantQueryResult<Variant> variantVariantQueryResult = variantManager.get(variantQuery, QueryOptions.empty(), sessionId);
-        List<String> geneIds = getGeneIdsFromPanel(diseasePanel);
-        if (variantVariantQueryResult.getNumResults() == 0) {
-            variantQuery = new Query();
-            query.put(VariantQueryParam.GENE.key(), StringUtils.join(geneIds, ","));
-            variantQuery.put(VariantQueryParam.SAMPLE.key(), StringUtils.join(samples, ","));
-            variantQuery.put(VariantQueryParam.ANNOT_BIOTYPE.key(), "protein_coding");
-            // ...
-
-            QueryOptions queryOptions = new QueryOptions();
-            queryOptions.put(QueryOptions.LIMIT, 1000);
-            variantVariantQueryResult = variantManager.get(variantQuery, queryOptions, sessionId);
-        }
-
-        // hallazgos
-
-        // creat interpertation with variantVariantQueryResult
+        // just write the result
+        // the result can be an error, but the analysis should always generate a result
 
         if (saveId != null && clinicalAnalysis != null) {
             // save in catalog
+        	interpretation = (new Interpretation());
+        	interpretation
+        		.setId(diseasePanel.getId() + " on " + TimeUtils.getTime())
+        		.setDescription("Automatic interpretation based on panel " + diseasePanel.getId())
+        		.setPanel(diseasePanel)
+        		// .setSoftware()
+        		// .setVersions(versions)
+        		// .setFilters(filters)
+        		.setCreationDate(TimeUtils.getTime())
+        		// .setComments(comments)
+        		// .setAttributes(attributes)
+        		.setReportedVariants(reportedVariants);
+        		;
+        	// analyst
+       		String userId = catalogManager.getUserManager().getUserId(sessionId);
+        	User user = catalogManager.getUserManager().get(userId,  QueryOptions.empty(), sessionId).first();      	
+        	interpretation.setAnalyst(new Analyst(user.getName(), user.getEmail(), user.getOrganization()));
         }
 
     }
