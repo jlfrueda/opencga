@@ -139,10 +139,9 @@ public class ClinicalAnalysisWSService extends AnalysisWSService {
             @ApiParam(value = "ID of the stored interpretation") @QueryParam("interpretationId") String interpretationId,
             @ApiParam(value = "Name of the stored interpretation") @QueryParam("interpretationName") String interpretationName
     ) {
-
-
-
-
+    	// TODO: call opencga-analysis/ClinicalInterpretationAnalysis
+    	// the problem is: opencga-analysis is not imported here!
+    	// we should import it transitively though opencga-catalog or storage
         return Response.ok().build();
     }
 
