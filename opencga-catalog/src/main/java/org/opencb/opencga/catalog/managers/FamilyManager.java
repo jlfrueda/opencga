@@ -84,7 +84,12 @@ public class FamilyManager extends AnnotationSetManager<Family> {
         if (UUIDUtils.isOpenCGAUUID(entry)) {
             query.put(FamilyDBAdaptor.QueryParams.UUID.key(), entry);
         } else {
-            query.put(FamilyDBAdaptor.QueryParams.ID.key(), entry);
+            try {
+                long entryLong = Long.parseLong(entry);
+                query.put(FamilyDBAdaptor.QueryParams.UID.key(), entryLong);
+            } catch (NumberFormatException e) {
+                query.put(FamilyDBAdaptor.QueryParams.ID.key(), entry);
+            }
         }
         QueryOptions options = new QueryOptions(QueryOptions.INCLUDE, Arrays.asList(
                 FamilyDBAdaptor.QueryParams.UUID.key(),  FamilyDBAdaptor.QueryParams.UID.key(), FamilyDBAdaptor.QueryParams.STUDY_UID.key(),
