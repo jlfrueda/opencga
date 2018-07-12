@@ -48,82 +48,82 @@ import org.opencb.opencga.storage.core.exceptions.StorageEngineException;
 import org.opencb.opencga.storage.core.manager.variant.VariantStorageManager;
 import org.opencb.opencga.storage.core.variant.adaptors.VariantQueryParam;
 
-public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {	
-	private Interpretation interpretation;
-	
+public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
+    private Interpretation interpretation;
+
     private final String sessionId;
     private final String studyStr;
-	    
+
     private final String panelId;
     private final String panelVersion;
     private final String sampleId;
-    
+
     private final boolean lookForVUS;
     private final boolean lookForUnexpectedFindings;
-    
+
     private final String interpretationId;
     private final String interpretationName;
-   
+
     // minimal constructor
     public ClinicalInterpretationAnalysis(
-    		String opencgaHome,
-    		String panelId,
-    		String sampleId,
-    		String sessionId    		
-    		) {
-    	this(opencgaHome, null, panelId, null, sampleId, null, null, true, true, sessionId);    	
+            String opencgaHome,
+            String panelId,
+            String sampleId,
+            String sessionId
+            ) {
+        this(opencgaHome, null, panelId, null, sampleId, null, null, true, true, sessionId);
     }
-	    
+
     // full constructor
     public ClinicalInterpretationAnalysis(
-    		String opencgaHome,
-    		String studyStr,    		
-    		String panelId,
-    		String panelVersion,
-    		String sampleId,
-    		String interpretationId,
-    		String interpretationName,
-    		boolean lookForVUS,
-    		boolean lookForUnexpectedFindings,
-    		String sessionId) {
-    	super(opencgaHome);
-    	this.sessionId = sessionId;
-    	this.studyStr = studyStr;    	
-    	this.panelId = panelId;
-    	this.panelVersion = panelVersion;
-    	this.sampleId = sampleId;
-    	this.interpretationId = interpretationId;
-    	this.interpretationName = interpretationName;
-    	this.lookForVUS = lookForVUS;
-    	this.lookForUnexpectedFindings = lookForUnexpectedFindings;
+            String opencgaHome,
+            String studyStr,
+            String panelId,
+            String panelVersion,
+            String sampleId,
+            String interpretationId,
+            String interpretationName,
+            boolean lookForVUS,
+            boolean lookForUnexpectedFindings,
+            String sessionId) {
+        super(opencgaHome);
+        this.sessionId = sessionId;
+        this.studyStr = studyStr;
+        this.panelId = panelId;
+        this.panelVersion = panelVersion;
+        this.sampleId = sampleId;
+        this.interpretationId = interpretationId;
+        this.interpretationName = interpretationName;
+        this.lookForVUS = lookForVUS;
+        this.lookForUnexpectedFindings = lookForUnexpectedFindings;
     }
-    
+
     private DiseasePanel getDiseasePanel() throws CatalogException {
         Query panelQuery = new Query();
         panelQuery.put(DiseasePanelDBAdaptor.QueryParams.ID.key(), panelId);
         if (StringUtils.isNotBlank(panelVersion)) {
-        	panelQuery.put(DiseasePanelDBAdaptor.QueryParams.VERSION.key(), panelVersion);        	
-        }        
+            panelQuery.put(DiseasePanelDBAdaptor.QueryParams.VERSION.key(), panelVersion);
+        }
         QueryResult<DiseasePanel> panelResult = catalogManager.getDiseasePanelManager().get(studyStr, panelQuery, QueryOptions.empty(), sessionId);
-        return panelResult.first();        
+        return panelResult.first();
     }
-    
+
     private List<ReportedVariant> getDiagnosticVariants(VariantStorageManager variantManager, DiseasePanel diseasePanel, String sampleId) throws CatalogException, StorageEngineException, IOException {
         List<DiseasePanel.VariantPanel> variants = diseasePanel.getVariants();
         Query variantQuery = new Query();
         variantQuery.put(VariantQueryParam.ID.key(), variants);
         variantQuery.put(VariantQueryParam.SAMPLE.key(), sampleId);
         VariantQueryResult<Variant> variantQueryResult = variantManager.get(variantQuery, QueryOptions.empty(), sessionId);
-        List<ReportedVariant> reportedVariants = variantQueryResult.getResult().stream().map(variant -> {        	
+        List<ReportedVariant> reportedVariants = variantQueryResult.getResult().stream().map(variant -> {
             ReportedVariant reportedVariant = new ReportedVariant(variant.getImpl());
-            // reportedEvents: List<ReportedEvent> 
-            // comments: List<String> 
-            // attributes: Map<String, Object>                        
+            // reportedEvents: List<ReportedEvent>
+            // comments: List<String>
+            // attributes: Map<String, Object>
             return reportedVariant;
         }).collect(Collectors.toList());
         return reportedVariants;
     }
-    
+
     private List<ReportedVariant> getVUS(VariantStorageManager variantManager, DiseasePanel diseasePanel, String sampleId) throws CatalogException, StorageEngineException, IOException {
         Query query = new Query();
         query.put(VariantQueryParam.GENE.key(), diseasePanel.getGenes());
@@ -139,33 +139,33 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
         }).collect(Collectors.toList());
         return reportedVariants;
     }
-    
+
     private List<ReportedVariant> getUnexpectedFindings(VariantStorageManager variantManager, String sampleId) {
         return new ArrayList<ReportedVariant>();
     }
-    
-    
-    public void execute() throws Exception {    	
-    	if (StringUtils.isEmpty(this.panelId)) {
-    		// TODO: proper error management
-    		logger.error("No disease panel provided");
-    		return;
-    	}
-    	DiseasePanel diseasePanel = getDiseasePanel();
+
+
+    public void execute() throws Exception {
+        if (StringUtils.isEmpty(this.panelId)) {
+            // TODO: proper error management
+            logger.error("No disease panel provided");
+            return;
+        }
+        DiseasePanel diseasePanel = getDiseasePanel();
 
         StorageEngineFactory storageEngineFactory = StorageEngineFactory.get(storageConfiguration);
         VariantStorageManager variantManager = new VariantStorageManager(catalogManager, storageEngineFactory);
-        
-        
+
+
         List<ReportedVariant> reportedVariants = getDiagnosticVariants(variantManager, diseasePanel, sampleId);
         if (this.lookForVUS) {
-        	reportedVariants.addAll(getVUS(variantManager, diseasePanel, sampleId));
+            reportedVariants.addAll(getVUS(variantManager, diseasePanel, sampleId));
         }
         if (this.lookForUnexpectedFindings) {
-        	reportedVariants.addAll(getUnexpectedFindings(variantManager, sampleId));
+            reportedVariants.addAll(getUnexpectedFindings(variantManager, sampleId));
         }
-        
-        // setup result        
+
+        // setup result
         interpretation = (new Interpretation());
         interpretation
             .setDescription("Automatic interpretation based on panel " + diseasePanel.getId())
@@ -179,14 +179,14 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
             .setReportedVariants(reportedVariants);
             ;
         if (StringUtils.isNotEmpty(interpretationId)) {
-        	interpretation.setId(interpretationId);
+            interpretation.setId(interpretationId);
         }
         if (StringUtils.isNotEmpty(interpretationName)) {
-        	interpretation.setName(interpretationName);
+            interpretation.setName(interpretationName);
         }
         // analyst
-    	String userId = catalogManager.getUserManager().getUserId(sessionId);
-    	User user = catalogManager.getUserManager().get(userId,  QueryOptions.empty(), sessionId).first();          
+        String userId = catalogManager.getUserManager().getUserId(sessionId);
+        User user = catalogManager.getUserManager().get(userId,  QueryOptions.empty(), sessionId).first();
         interpretation.setAnalyst(new Analyst(user.getName(), user.getEmail(), user.getOrganization()));
     }
 
