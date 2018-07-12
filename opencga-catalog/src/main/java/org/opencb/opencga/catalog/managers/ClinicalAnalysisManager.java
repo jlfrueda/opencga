@@ -110,7 +110,7 @@ public class ClinicalAnalysisManager extends ResourceManager<ClinicalAnalysis> {
             }
         }
 
-        addMissingInformation(queryResult, study.getUid(), sessionId);
+        addMissingInformation(queryResult, study.getFqn(), sessionId);
 
         return queryResult;
     }
@@ -167,7 +167,7 @@ public class ClinicalAnalysisManager extends ResourceManager<ClinicalAnalysis> {
         clinicalAnalysis.setUuid(UUIDUtils.generateOpenCGAUUID(UUIDUtils.Entity.CLINICAL));
         QueryResult<ClinicalAnalysis> queryResult = clinicalDBAdaptor.insert(study.getUid(), clinicalAnalysis, options);
 
-        addMissingInformation(queryResult, study.getUid(), sessionId);
+        addMissingInformation(queryResult, study.getFqn(), sessionId);
         return queryResult;
     }
 
@@ -376,7 +376,7 @@ public class ClinicalAnalysisManager extends ResourceManager<ClinicalAnalysis> {
         QueryResult<ClinicalAnalysis> queryResult = clinicalDBAdaptor.get(query, options, userId);
 //            authorizationManager.filterClinicalAnalysis(userId, studyId, queryResultAux.getResult());
 
-        addMissingInformation(queryResult, study.getUid(), sessionId);
+        addMissingInformation(queryResult, study.getFqn(), sessionId);
         return queryResult;
     }
 
@@ -457,7 +457,7 @@ public class ClinicalAnalysisManager extends ResourceManager<ClinicalAnalysis> {
         return ParamUtils.defaultObject(queryResult, QueryResult::new);
     }
 
-    private void addMissingInformation(QueryResult<ClinicalAnalysis> queryResult, long studyId, String sessionId) {
+    private void addMissingInformation(QueryResult<ClinicalAnalysis> queryResult, String studyId, String sessionId) {
         if (queryResult.getNumResults() == 0) {
             return;
         }
@@ -468,7 +468,7 @@ public class ClinicalAnalysisManager extends ResourceManager<ClinicalAnalysis> {
             // Complete somatic file information
             if (clinicalAnalysis.getSomatic() != null && clinicalAnalysis.getSomatic().getUid() > 0) {
                 try {
-                    QueryResult<File> fileQueryResult = catalogManager.getFileManager().get(String.valueOf(studyId),
+                    QueryResult<File> fileQueryResult = catalogManager.getFileManager().get(studyId,
                             String.valueOf(clinicalAnalysis.getSomatic().getUid()), QueryOptions.empty(), sessionId);
                     if (fileQueryResult.getNumResults() == 1) {
                         clinicalAnalysis.setSomatic(fileQueryResult.first());
