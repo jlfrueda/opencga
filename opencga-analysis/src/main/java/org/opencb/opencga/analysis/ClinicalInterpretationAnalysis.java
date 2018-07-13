@@ -121,6 +121,7 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
             	// .setId("id")
             	// .setPhenotype("phenotype")
             	.setVariantClassification(VariantClassification.PATHOGENIC_VARIANT)
+            	.setScore(1.0)
             	;
             reportedVariant.getReportedEvents().add(event);
             // reportedEvents: List<ReportedEvent>
@@ -148,6 +149,7 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
             	// .setId("id")
             	// .setPhenotype("phenotype")
             	.setVariantClassification(VariantClassification.VARIANT_OF_UNKNOWN_CLINICAL_SIGNIFICANCE)
+            	.setScore(0.5)
             	;
             reportedVariant.getReportedEvents().add(event);            
             return reportedVariant;

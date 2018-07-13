@@ -17,6 +17,8 @@
 package org.opencb.opencga.server.rest.analysis;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -34,10 +36,19 @@ import org.opencb.commons.datastore.core.QueryResponse;
 import org.opencb.opencga.analysis.ClinicalInterpretationAnalysis;
 import org.opencb.opencga.core.config.Configuration;
 import org.opencb.opencga.core.exception.VersionException;
+import org.opencb.opencga.core.models.DiseasePanel;
+import org.opencb.opencga.core.models.OntologyTerm;
+import org.opencb.opencga.core.models.Status;
+import org.opencb.opencga.core.models.DiseasePanel.GenePanel;
+import org.opencb.opencga.core.models.DiseasePanel.RegionPanel;
+import org.opencb.opencga.core.models.DiseasePanel.SourcePanel;
+import org.opencb.opencga.core.models.DiseasePanel.VariantPanel;
 import org.opencb.opencga.core.models.clinical.Interpretation;
 import org.opencb.opencga.server.rest.OpenCGAWSServer;
 import org.opencb.opencga.storage.core.config.StorageConfiguration;
 import org.opencb.opencga.storage.core.manager.clinical.ClinicalInterpretationManager;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -150,6 +161,46 @@ public class ClinicalAnalysisWSService extends AnalysisWSService {
             // @ApiParam(value = "Clinical analysis type, e.g. DUO, TRIO, ...") @QueryParam("type") String type,            
             // @ApiParam(value = "Save interpretation in Catalog") @QueryParam("save") Boolean save,            
     ) {
+    	try {
+    		
+    		/*
+    		 *  private String id;
+			    private String name;
+			    private String uuid;
+			
+			    private int release;
+			    private int version;
+			
+			    private String author;
+			    private String creationDate;
+			    private Status status;
+			    private SourcePanel source;
+			    private String description;
+			
+			    private List<OntologyTerm> phenotypes;
+			
+			    private List<VariantPanel> variants;
+			    private List<GenePanel> genes;
+			    private List<RegionPanel> regions;
+			
+			    private Map<String, Object> attributes;
+    		 */
+    		
+    		DiseasePanel panel = new DiseasePanel();
+			panel.setId("id").setName("name").setAuthor("author").setCreationDate("creationDate");
+			// panel.getVariants().add
+    		
+    		
+    		ObjectMapper objectMapper = new ObjectMapper();
+    		String json = objectMapper.writeValueAsString(panel);
+    		return createOkResponse(json);
+    		
+    	} catch (Exception exc) {
+    		
+    	}
+    	
+    	
+    	
     	try {    		
     		Configuration configuration = OpenCGAWSServer.configuration;
     		StorageConfiguration storageConfiguration = OpenCGAWSServer.storageConfiguration;
