@@ -139,8 +139,8 @@ public class ClinicalAnalysisWSService extends AnalysisWSService {
             @ApiParam(value = "Panel ID", required=true) @QueryParam("panelId") String panelId,
             @ApiParam(value = "Panel version") @QueryParam("panelVersion") String panelVersion,
             @ApiParam(value = "Sample ID", required=true) @QueryParam("sampleId") String sampleId,
-            @ApiParam(value = "Whether to look for Variants of Uncertain Significance") @QueryParam("lookForVUS") Boolean searchForVUS,
-            @ApiParam(value = "Whether to look for potential unexpected findings") @QueryParam("lookForUF") Boolean searchForUF,
+            @ApiParam(value = "Whether to look for Variants of Uncertain Significance") @QueryParam("searchForVUS") Boolean searchForVUS,
+            @ApiParam(value = "Whether to look for potential unexpected findings") @QueryParam("searchForUF") Boolean searchForUF,
             @ApiParam(value = "ID of the interpretation") @QueryParam("interpretationId") String interpretationId,
             @ApiParam(value = "Name of the interpretation") @QueryParam("interpretationName") String interpretationName            
             // @ApiParam(value = "Clinical Analysis Id") @QueryParam("clinicalAnalysisId") String clinicalAnalysisId,

@@ -35,6 +35,8 @@ import org.opencb.opencga.core.models.DiseasePanel;
 import org.opencb.opencga.core.models.User;
 import org.opencb.opencga.core.models.clinical.Analyst;
 import org.opencb.opencga.core.models.clinical.Interpretation;
+import org.opencb.opencga.core.models.clinical.ReportedEvent;
+import org.opencb.opencga.core.models.clinical.ReportedEvent.VariantClassification;
 import org.opencb.opencga.core.models.clinical.ReportedVariant;
 import org.opencb.opencga.core.results.VariantQueryResult;
 import org.opencb.opencga.storage.core.StorageEngineFactory;
@@ -114,6 +116,13 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
         VariantQueryResult<Variant> variantQueryResult = variantManager.get(variantQuery, QueryOptions.empty(), sessionId);
         List<ReportedVariant> reportedVariants = variantQueryResult.getResult().stream().map(variant -> {
             ReportedVariant reportedVariant = new ReportedVariant(variant.getImpl());
+            ReportedEvent event = new ReportedEvent();
+            event
+            	// .setId("id")
+            	// .setPhenotype("phenotype")
+            	.setVariantClassification(VariantClassification.PATHOGENIC_VARIANT)
+            	;
+            reportedVariant.getReportedEvents().add(event);
             // reportedEvents: List<ReportedEvent>
             // comments: List<String>
             // attributes: Map<String, Object>
@@ -134,6 +143,13 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
         VariantQueryResult<Variant> queryResult = variantManager.get(query, queryOptions, sessionId);
         List<ReportedVariant> reportedVariants = queryResult.getResult().stream().map(variant -> {
             ReportedVariant reportedVariant = new ReportedVariant(variant.getImpl());
+            ReportedEvent event = new ReportedEvent();
+            event
+            	// .setId("id")
+            	// .setPhenotype("phenotype")
+            	.setVariantClassification(VariantClassification.VARIANT_OF_UNKNOWN_CLINICAL_SIGNIFICANCE)
+            	;
+            reportedVariant.getReportedEvents().add(event);            
             return reportedVariant;
         }).collect(Collectors.toList());
         return reportedVariants;

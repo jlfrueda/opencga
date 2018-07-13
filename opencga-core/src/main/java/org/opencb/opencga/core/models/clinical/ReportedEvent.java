@@ -43,8 +43,8 @@ public class ReportedEvent {
     }
 
     public enum Penetrance {
-        complete,
-        incomplete
+        COMPLETE,
+        INCOMPLETE
     }
 
     public ReportedEvent() {
