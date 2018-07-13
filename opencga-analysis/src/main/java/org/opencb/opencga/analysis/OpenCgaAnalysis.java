@@ -45,6 +45,15 @@ public class OpenCgaAnalysis {
 
         init();
     }
+    
+    // we allow the exception to propagate up
+    // which is THE RIGHT THING TO DO
+    public OpenCgaAnalysis(Configuration configuration, StorageConfiguration storageConfigutation) throws CatalogException {
+    	this.opencgaHome = null;
+    	this.configuration = configuration;
+    	this.storageConfiguration = storageConfigutation;    	
+		this.catalogManager = new CatalogManager(configuration);    	
+    }
 
     void init() {
         logger = LoggerFactory.getLogger(this.getClass().toString());
