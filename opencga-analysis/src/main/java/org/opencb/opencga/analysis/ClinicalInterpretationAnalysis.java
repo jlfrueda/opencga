@@ -60,10 +60,10 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
 
     private final String interpretationId;
     private final String interpretationName;
-    
+
     // minimal constructor
     public ClinicalInterpretationAnalysis(
-    		Configuration configuration,
+            Configuration configuration,
             StorageConfiguration storageConfiguration,
             String panelId,
             String sampleId,
@@ -98,7 +98,7 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
     }
 
     private DiseasePanel getDiseasePanel() throws CatalogException {
-    	
+
         Query panelQuery = new Query();
         panelQuery.put(DiseasePanelDBAdaptor.QueryParams.ID.key(), panelId);
         if (StringUtils.isNotBlank(panelVersion)) {
@@ -118,11 +118,11 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
             ReportedVariant reportedVariant = new ReportedVariant(variant.getImpl());
             ReportedEvent event = new ReportedEvent();
             event
-            	// .setId("id")
-            	// .setPhenotype("phenotype")
-            	.setVariantClassification(VariantClassification.PATHOGENIC_VARIANT)
-            	.setScore(1.0)
-            	;
+                // .setId("id")
+                // .setPhenotype("phenotype")
+                .setVariantClassification(VariantClassification.PATHOGENIC_VARIANT)
+                .setScore(1.0)
+                ;
             reportedVariant.getReportedEvents().add(event);
             // reportedEvents: List<ReportedEvent>
             // comments: List<String>
@@ -133,7 +133,7 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
     }
 
     private List<ReportedVariant> getVUS(VariantStorageManager variantManager, DiseasePanel diseasePanel, String sampleId) throws CatalogException, StorageEngineException, IOException {
-    	// TODO: implement this (working on specs)
+        // TODO: implement this (working on specs)
         Query query = new Query();
         query.put(VariantQueryParam.GENE.key(), diseasePanel.getGenes());
         query.put(VariantQueryParam.SAMPLE.key(), sampleId);
@@ -146,32 +146,32 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
             ReportedVariant reportedVariant = new ReportedVariant(variant.getImpl());
             ReportedEvent event = new ReportedEvent();
             event
-            	// .setId("id")
-            	// .setPhenotype("phenotype")
-            	.setVariantClassification(VariantClassification.VARIANT_OF_UNKNOWN_CLINICAL_SIGNIFICANCE)
-            	.setScore(0.5)
-            	;
-            reportedVariant.getReportedEvents().add(event);            
+                // .setId("id")
+                // .setPhenotype("phenotype")
+                .setVariantClassification(VariantClassification.VARIANT_OF_UNKNOWN_CLINICAL_SIGNIFICANCE)
+                .setScore(0.5)
+                ;
+            reportedVariant.getReportedEvents().add(event);
             return reportedVariant;
         }).collect(Collectors.toList());
         return reportedVariants;
     }
 
     private List<ReportedVariant> getUnexpectedFindings(VariantStorageManager variantManager, String sampleId) {
-    	// TODO: implement this (working on specs)
+        // TODO: implement this (working on specs)
         return new ArrayList<ReportedVariant>();
     }
-    
+
     private Interpretation createGenericInterpretation(CatalogManager catalogManager) throws CatalogException {
-    	interpretation = new Interpretation();
-    	interpretation.setCreationDate(TimeUtils.getTime());
+        interpretation = new Interpretation();
+        interpretation.setCreationDate(TimeUtils.getTime());
         // .setSoftware()
         // .setVersions(versions)
         // .setFilters(filters)
         // .setComments(comments)
         // .setAttributes(attributes)
-    	
-    	if (StringUtils.isNotEmpty(interpretationId)) {
+
+        if (StringUtils.isNotEmpty(interpretationId)) {
             interpretation.setId(interpretationId);
         }
         if (StringUtils.isNotEmpty(interpretationName)) {
@@ -191,7 +191,7 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
             return;
         }
         DiseasePanel diseasePanel = getDiseasePanel();
-        
+
         StorageEngineFactory storageEngineFactory = StorageEngineFactory.get(storageConfiguration);
         VariantStorageManager variantManager = new VariantStorageManager(catalogManager, storageEngineFactory);
 
@@ -205,12 +205,12 @@ public class ClinicalInterpretationAnalysis extends OpenCgaAnalysis {
 
         // setup result
         createGenericInterpretation(catalogManager)
-        	.setReportedVariants(reportedVariants);
+            .setReportedVariants(reportedVariants);
         interpretation
             .setDescription("Automatic interpretation based on panel " + diseasePanel.getId())
             .setPanel(diseasePanel)
             .setReportedVariants(reportedVariants);
-            ;        
+            ;
     }
 
     public Interpretation getInterpretation() {

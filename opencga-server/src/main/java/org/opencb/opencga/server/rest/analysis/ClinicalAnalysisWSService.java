@@ -17,9 +17,6 @@
 package org.opencb.opencga.server.rest.analysis;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -33,30 +30,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang3.BooleanUtils;
-import org.opencb.biodata.models.variant.Variant;
-import org.opencb.commons.datastore.core.Query;
-import org.opencb.commons.datastore.core.QueryOptions;
 import org.opencb.commons.datastore.core.QueryResponse;
 import org.opencb.opencga.analysis.ClinicalInterpretationAnalysis;
-import org.opencb.opencga.catalog.exceptions.CatalogException;
 import org.opencb.opencga.core.config.Configuration;
 import org.opencb.opencga.core.exception.VersionException;
-import org.opencb.opencga.core.models.DiseasePanel;
-import org.opencb.opencga.core.models.OntologyTerm;
-import org.opencb.opencga.core.models.Status;
-import org.opencb.opencga.core.models.DiseasePanel.GenePanel;
-import org.opencb.opencga.core.models.DiseasePanel.RegionPanel;
-import org.opencb.opencga.core.models.DiseasePanel.SourcePanel;
-import org.opencb.opencga.core.models.DiseasePanel.VariantPanel;
 import org.opencb.opencga.core.models.clinical.Interpretation;
-import org.opencb.opencga.core.results.VariantQueryResult;
 import org.opencb.opencga.server.rest.OpenCGAWSServer;
 import org.opencb.opencga.storage.core.config.StorageConfiguration;
-import org.opencb.opencga.storage.core.exceptions.StorageEngineException;
 import org.opencb.opencga.storage.core.manager.clinical.ClinicalInterpretationManager;
-import org.opencb.opencga.storage.core.variant.adaptors.VariantQueryParam;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -71,7 +52,7 @@ public class ClinicalAnalysisWSService extends AnalysisWSService {
 
     public ClinicalAnalysisWSService(@Context UriInfo uriInfo, @Context HttpServletRequest httpServletRequest, @Context HttpHeaders httpHeaders)
             throws IOException, VersionException {
-    	this(uriInfo.getPathParameters().getFirst("apiVersion"), uriInfo, httpServletRequest,httpHeaders);
+        this(uriInfo.getPathParameters().getFirst("apiVersion"), uriInfo, httpServletRequest,httpHeaders);
     }
 
     public ClinicalAnalysisWSService(String apiVersion, @Context UriInfo uriInfo, @Context HttpServletRequest httpServletRequest, @Context HttpHeaders httpHeaders)
@@ -98,64 +79,7 @@ public class ClinicalAnalysisWSService extends AnalysisWSService {
                           @ApiParam(value = "Study [[user@]project:]study where study and project can be either the id or alias") @QueryParam("study") String study) {
         return Response.ok().build();
     }
-    
-    private String runExperiment(String studyStr, String sessionId) throws CatalogException, StorageEngineException, IOException {
-    	
-    	// Configuration configuration = OpenCGAWSServer.configuration;
-		// StorageConfiguration storageConfiguration = OpenCGAWSServer.storageConfiguration;
 
-		List<String> variantIds = new ArrayList<String>();
-		// variantIds.add("11:  76919478:C:A");
-		variantIds.add("11:76919478:C:A");
-		List<String> sampleIds = new ArrayList<String>();
-		sampleIds.add("hija");
-				
-		Query query = new Query();
-		query.put(VariantQueryParam.ID.key(), variantIds);
-        query.put(VariantQueryParam.SAMPLE.key(), sampleIds);
-        VariantQueryResult<Variant> queryResult = variantManager.get(query, QueryOptions.empty(), sessionId);
-        return queryResult.toString();
-    	
-//    	try {
-//    		
-//    		/*
-//    		 *  private String id;
-//			    private String name;
-//			    private String uuid;
-//			
-//			    private int release;
-//			    private int version;
-//			
-//			    private String author;
-//			    private String creationDate;
-//			    private Status status;
-//			    private SourcePanel source;
-//			    private String description;
-//			
-//			    private List<OntologyTerm> phenotypes;
-//			
-//			    private List<VariantPanel> variants;
-//			    private List<GenePanel> genes;
-//			    private List<RegionPanel> regions;
-//			
-//			    private Map<String, Object> attributes;
-//    		 */
-//    		
-//    		DiseasePanel panel = new DiseasePanel();
-//			panel.setId("id").setName("name").setAuthor("author").setCreationDate("creationDate");
-//			// panel.getVariants().add
-//    		
-//    		
-//    		ObjectMapper objectMapper = new ObjectMapper();
-//    		String json = objectMapper.writeValueAsString(panel);
-//    		return createOkResponse(json);
-//    		
-//    	} catch (Exception exc) {
-//    		
-//    	}
-    	    	
-    }
-    
     @GET
     @Path("/interpretation")
     @ApiOperation(value = "Clinical interpretation analysis", position = 14, response = QueryResponse.class)
@@ -218,43 +142,31 @@ public class ClinicalAnalysisWSService extends AnalysisWSService {
             @ApiParam(value = "Whether to look for Variants of Uncertain Significance") @QueryParam("searchForVUS") Boolean searchForVUS,
             @ApiParam(value = "Whether to look for potential unexpected findings") @QueryParam("searchForUF") Boolean searchForUF,
             @ApiParam(value = "ID of the interpretation") @QueryParam("interpretationId") String interpretationId,
-            @ApiParam(value = "Name of the interpretation") @QueryParam("interpretationName") String interpretationName            
+            @ApiParam(value = "Name of the interpretation") @QueryParam("interpretationName") String interpretationName
             // @ApiParam(value = "Clinical Analysis Id") @QueryParam("clinicalAnalysisId") String clinicalAnalysisId,
             // @ApiParam(value = "Disease (HPO term)") @QueryParam("disease") String disease,
             // @ApiParam(value = "Family ID") @QueryParam("familyId") String familyId,
             // @ApiParam(value = "Comma separated list of subject IDs") @QueryParam("subjectIds") List<String> subjectIds,
-            // @ApiParam(value = "Clinical analysis type, e.g. DUO, TRIO, ...") @QueryParam("type") String type,            
-            // @ApiParam(value = "Save interpretation in Catalog") @QueryParam("save") Boolean save,            
+            // @ApiParam(value = "Clinical analysis type, e.g. DUO, TRIO, ...") @QueryParam("type") String type,
+            // @ApiParam(value = "Save interpretation in Catalog") @QueryParam("save") Boolean save,
     ) {
-    	if (true && null != this) {
-    		try {
-        		String results = runExperiment(studyStr, sessionId);
-        		return createOkResponse(results);    			
-			} catch (Exception e) {
-				e.printStackTrace();
-				if (e != null) {
-					return createErrorResponse(e);
-				}					
-			}
-    	}
-    	
-    	try {    		
-    		Configuration configuration = OpenCGAWSServer.configuration;
-    		StorageConfiguration storageConfiguration = OpenCGAWSServer.storageConfiguration;
-    		ClinicalInterpretationAnalysis analysis = new ClinicalInterpretationAnalysis(
-    				configuration, storageConfiguration,
-    				studyStr, panelId, panelVersion, sampleId, interpretationId, interpretationName,
-    				BooleanUtils.isTrue(searchForVUS), BooleanUtils.isTrue(searchForUF), sessionId);
-    		analysis.execute();
-    		Interpretation interpretation = analysis.getInterpretation();			
-    		if (null != interpretation) {
-    			return createOkResponse(interpretation);				
-    		} else {
-    			return createOkResponse("no results were generated");
-    		}
-		} catch (Exception exc) {
-			return createErrorResponse(exc);
-		}
+        try {
+            Configuration configuration = OpenCGAWSServer.configuration;
+            StorageConfiguration storageConfiguration = OpenCGAWSServer.storageConfiguration;
+            ClinicalInterpretationAnalysis analysis = new ClinicalInterpretationAnalysis(
+                    configuration, storageConfiguration,
+                    studyStr, panelId, panelVersion, sampleId, interpretationId, interpretationName,
+                    BooleanUtils.isTrue(searchForVUS), BooleanUtils.isTrue(searchForUF), sessionId);
+            analysis.execute();
+            Interpretation interpretation = analysis.getInterpretation();
+            if (null != interpretation) {
+                return createOkResponse(interpretation);
+            } else {
+                return createOkResponse("no results were generated");
+            }
+        } catch (Exception exc) {
+            return createErrorResponse(exc);
+        }
     }
 
     @GET
