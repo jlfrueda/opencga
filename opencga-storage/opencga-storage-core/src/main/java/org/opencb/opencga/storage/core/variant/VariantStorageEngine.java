@@ -18,17 +18,20 @@ package org.opencb.opencga.storage.core.variant;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterators;
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.opencb.biodata.models.core.Region;
 import org.opencb.biodata.models.metadata.SampleSetType;
 import org.opencb.biodata.models.variant.StudyEntry;
 import org.opencb.biodata.models.variant.Variant;
+import org.opencb.biodata.models.variant.avro.ClinicalSignificance;
 import org.opencb.biodata.models.variant.avro.VariantAnnotation;
 import org.opencb.biodata.models.variant.metadata.Aggregation;
 import org.opencb.biodata.models.variant.metadata.VariantMetadata;
 import org.opencb.cellbase.client.config.ClientConfiguration;
 import org.opencb.cellbase.client.rest.CellBaseClient;
+import org.opencb.cellbase.core.variant.annotation.VariantAnnotationUtils;
 import org.opencb.commons.ProgressLogger;
 import org.opencb.commons.datastore.core.ObjectMap;
 import org.opencb.commons.datastore.core.Query;
@@ -75,6 +78,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.opencb.opencga.storage.core.variant.VariantStorageEngine.Options.*;
+import static org.opencb.opencga.storage.core.variant.adaptors.VariantQueryParam.ANNOT_CLINICAL_SIGNIFICANCE;
 import static org.opencb.opencga.storage.core.variant.adaptors.VariantQueryParam.ID;
 import static org.opencb.opencga.storage.core.variant.annotation.annotators.AbstractCellBaseVariantAnnotator.toCellBaseSpeciesName;
 import static org.opencb.opencga.storage.core.variant.search.solr.VariantSearchManager.SEARCH_ENGINE_ID;
@@ -259,7 +263,7 @@ public abstract class VariantStorageEngine extends StorageEngine<VariantDBAdapto
                            Query query, QueryOptions queryOptions)
             throws IOException, StorageEngineException {
         VariantExporter exporter = newVariantExporter(metadataFactory);
-        preProcessQuery(query, getStudyConfigurationManager());
+        preProcessQuery(query);
         exporter.export(outputFile, outputFormat, query, queryOptions);
     }
 
@@ -743,7 +747,7 @@ public abstract class VariantStorageEngine extends StorageEngine<VariantDBAdapto
             options = QueryOptions.empty();
         }
         // TODO: Use CacheManager ?
-        query = preProcessQuery(query, getStudyConfigurationManager());
+        query = preProcessQuery(query);
         if (doQuerySearchManager(query, options)) {
             try {
                 if (iterator) {
@@ -845,7 +849,38 @@ public abstract class VariantStorageEngine extends StorageEngine<VariantDBAdapto
         }
     }
 
-    protected Query preProcessQuery(Query query, StudyConfigurationManager studyConfigurationManager) throws StorageEngineException {
+    protected Query preProcessQuery(Query originalQuery) throws StorageEngineException {
+        // Copy input query! Do not modify original query!
+        Query query = originalQuery == null ? new Query() : new Query(originalQuery);
+
+        if (VariantQueryUtils.isValidParam(query, ANNOT_CLINICAL_SIGNIFICANCE)) {
+            String v = query.getString(ANNOT_CLINICAL_SIGNIFICANCE.key());
+            VariantQueryUtils.QueryOperation operator = VariantQueryUtils.checkOperator(v);
+            List<String> values = VariantQueryUtils.splitValue(v, operator);
+            List<String> clinicalSignificanceList = new ArrayList<>(values.size());
+            for (String clinicalSignificance : values) {
+                ClinicalSignificance enumValue = EnumUtils.getEnum(ClinicalSignificance.class, clinicalSignificance);
+                if (enumValue == null) {
+                    String key = clinicalSignificance.toLowerCase().replace(' ', '_');
+                    enumValue = EnumUtils.getEnum(ClinicalSignificance.class, key);
+                }
+                if (enumValue == null) {
+                    String key = clinicalSignificance.toLowerCase();
+                    if (VariantAnnotationUtils.CLINVAR_CLINSIG_TO_ACMG.containsKey(key)) {
+                        // No value set
+                        enumValue = VariantAnnotationUtils.CLINVAR_CLINSIG_TO_ACMG.get(key);
+                    }
+                }
+                if (enumValue != null) {
+                    clinicalSignificance = enumValue.toString();
+                } // else should throw exception?
+
+                clinicalSignificanceList.add(clinicalSignificance);
+            }
+            query.put(ANNOT_CLINICAL_SIGNIFICANCE.key(), clinicalSignificanceList);
+        }
+
+
         return query;
     }
 
@@ -928,7 +963,7 @@ public abstract class VariantStorageEngine extends StorageEngine<VariantDBAdapto
     }
 
     public QueryResult<Long> count(Query query) throws StorageEngineException {
-        query = preProcessQuery(query, getStudyConfigurationManager());
+        query = preProcessQuery(query);
         if (!doQuerySearchManager(query, new QueryOptions(QueryOptions.COUNT, true))) {
             return getDBAdaptor().count(query);
         } else {
