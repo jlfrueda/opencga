@@ -1,14 +1,13 @@
 package org.opencb.opencga.analysis;
 
 import org.junit.Test;
+import org.junit.Before;
 import org.opencb.opencga.catalog.managers.CatalogManager;
 import org.opencb.opencga.catalog.managers.CatalogManagerExternalResource;
 import org.opencb.opencga.catalog.managers.UserManager;
-import org.junit.Before;
 
 
 public class ClinicalInterpretationAnalysisTest {
-	
 	
 	@Test
 	public void testGetClinicalAnalysis() {
